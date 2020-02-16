@@ -18,7 +18,6 @@ public class MainActor extends AbstractBehavior<MainActor.Question> {
     }
 
     private final ActorRef<Question> searchActor;
-    private boolean isAsked = false;
 
     public static Behavior<Question> create() {
         return Behaviors.setup(MainActor::new);
@@ -36,19 +35,7 @@ public class MainActor extends AbstractBehavior<MainActor.Question> {
     }
 
     private Behavior<Question> onDoQuestion(Question command) {
-        if (isAsked) {
-            if (command.question.toUpperCase().equals("N")) {
-                getContext().getSystem().terminate();
-                System.out.println("Well, please press ENTER to exit.");
-            } else {
-                System.out.println("Well, please, ask your question.");
-                isAsked = false;
-            }
-        } else {
-            isAsked = true;
-            searchActor.tell(new Question(command.question));
-        }
-
+        searchActor.tell(new Question(command.question));
         return this;
     }
 }

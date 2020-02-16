@@ -5,8 +5,20 @@ import akka.actor.typed.javadsl.AbstractBehavior;
 import akka.actor.typed.javadsl.ActorContext;
 import akka.actor.typed.javadsl.Behaviors;
 import akka.actor.typed.javadsl.Receive;
+import jdk.nashorn.internal.parser.JSONParser;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.util.EntityUtils;
+import org.json.JSONObject;
+
+import java.io.IOException;
 
 public class SearchActor extends AbstractBehavior<MainActor.Question> {
+
+    private boolean isAsked = false;
 
     @Override
     public Receive<MainActor.Question> createReceive() {
@@ -22,8 +34,52 @@ public class SearchActor extends AbstractBehavior<MainActor.Question> {
     }
 
     private Behavior<MainActor.Question> onSearch(MainActor.Question command) {
-        System.out.println(command.question);
-        System.out.println("Ask next question? Y/n");
+        if (isAsked) {
+            if (command.question.toUpperCase().equals("N")) {
+                getContext().getSystem().terminate();
+                System.out.println("Well, please press ENTER to exit.");
+            } else {
+                System.out.println("Well, please, ask your question.");
+                isAsked = false;
+            }
+        } else {
+            isAsked = true;
+            searchRequest(command.question);
+            System.out.println("Ask next question? Y/n");
+        }
+
         return this;
+    }
+
+    // search answer from API
+    private void searchRequest(String messege) {
+        HttpPost post = new HttpPost("https://odqa.demos.ivoice.online/model");
+
+        // add headers
+        post.setHeader("User-Agent", "Mozilla");
+        post.addHeader("content-type", "application/json");
+        post.addHeader("accept", "application/json");
+
+        // add request parameter, form parameters
+        try {
+            StringBuilder json = new StringBuilder();
+            json.append("{")
+                    .append("\"context\":\"")
+                    .append(messege)
+                    .append("\",")
+                    .append("}");
+
+            // send a JSON data
+            post.setEntity(new StringEntity(json.toString()));
+            try (CloseableHttpClient httpClient = HttpClients.createDefault();
+                CloseableHttpResponse response = httpClient.execute(post)) {
+
+                JSONObject jsonObject = new JSONObject(EntityUtils.toString(response.getEntity()));
+                // TODO: fix to correct value
+                System.out.println(jsonObject.getString("message"));
+            }
+        } catch (IOException ignore) {
+            System.out.println("Sorry, didn't work out.");
+        }
     }
 }
