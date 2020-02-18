@@ -5,7 +5,6 @@ import akka.actor.typed.javadsl.AbstractBehavior;
 import akka.actor.typed.javadsl.ActorContext;
 import akka.actor.typed.javadsl.Behaviors;
 import akka.actor.typed.javadsl.Receive;
-import jdk.nashorn.internal.parser.JSONParser;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
@@ -17,6 +16,11 @@ import org.json.JSONObject;
 import java.io.IOException;
 
 public class SearchActor extends AbstractBehavior<MainActor.Question> {
+
+    public static final String NO_ANSWER = "N";
+    public static final String NEXT_QUEST_IS_NEED = "Ask next question? Y/n";
+    public static final String NEW_QUEST = "Well, please, ask your question.";
+    public static final String EXIT = "Well, please press ENTER to exit.";
 
     private boolean isAsked = false;
 
@@ -35,17 +39,17 @@ public class SearchActor extends AbstractBehavior<MainActor.Question> {
 
     private Behavior<MainActor.Question> onSearch(MainActor.Question command) {
         if (isAsked) {
-            if (command.question.toUpperCase().equals("N")) {
+            if (command.question.toUpperCase().equals(NO_ANSWER)) {
                 getContext().getSystem().terminate();
-                System.out.println("Well, please press ENTER to exit.");
+                System.out.println(EXIT);
             } else {
-                System.out.println("Well, please, ask your question.");
+                System.out.println(NEW_QUEST);
                 isAsked = false;
             }
         } else {
             isAsked = true;
             searchRequest(command.question);
-            System.out.println("Ask next question? Y/n");
+            System.out.println(NEXT_QUEST_IS_NEED);
         }
 
         return this;
